@@ -29,7 +29,6 @@ validator = { version = "0.18.1", features = ["derive"] }
 dotenv = "0.15.0"
 
 # Uptop module
-# uptop_core = { git = "https://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:@github.com/Huy-Thai/uptop_core.git" }
 uptop_core = { path = "../uptop_core" }
 
 [build-dependencies]
