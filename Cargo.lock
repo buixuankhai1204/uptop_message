@@ -2957,6 +2957,7 @@ dependencies = [
  "ipinfo",
  "lettre",
  "passwords",
+ "rand",
  "regex",
  "scylla",
  "serde",

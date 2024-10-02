@@ -1,22 +1,20 @@
-use std::rc::Rc;
+use crate::application::topic::request::{
+    RequestGetTopicByIndexKey, RequestGetTopicByPrimaryKey, RequestUpdateTopic,
+};
 use crate::{
-    application::topic::request::{
-        RequestFindTopicError, RequestGetTopicByPartitionKey,
-    },
+    application::topic::request::{RequestFindTopicError, RequestGetTopicByPartitionKey},
     domain::topic::{entity::Topic, repository::TopicRepository},
 };
 use anyhow::anyhow;
-use charybdis::{
-    operations::{Find, Insert, Update},
-};
 use charybdis::batch::ModelBatch;
+use charybdis::operations::{Find, Insert, Update};
 use charybdis::types::Text;
 use scylla::batch::Batch;
+use std::rc::Rc;
 use uptop_core::common::{
     db_types::CassandraCacheSession,
     result::{AppError, AppResult},
 };
-use crate::application::topic::request::{RequestGetTopicByIndexKey, RequestGetTopicByPrimaryKey, RequestUpdateTopic};
 
 #[derive(Clone, Debug)]
 pub struct TopicRepo {
@@ -30,7 +28,9 @@ impl TopicRepo {
 
     pub async fn migrate_topic_table(&self) -> AppResult<()> {
         let session = self.db.lock().await;
-        session.execute_unpaged(CREATE_TOPIC_TABLE_QUERY, ()).await?;
+        session
+            .execute_unpaged(CREATE_TOPIC_TABLE_QUERY, ())
+            .await?;
         session.execute_unpaged(CREATE_USER_ID_INDEX, ()).await?;
         session.execute_unpaged(CREATE_USER_EMAIL_INDEX, ()).await?;
         session.execute_unpaged(CREATE_USER_NAME_INDEX, ()).await?;
@@ -50,7 +50,10 @@ impl TopicRepository for TopicRepo {
         }
     }
 
-    async fn find_topic_by_partition_key(&self, query: &RequestGetTopicByPartitionKey) -> AppResult<Vec<Topic>> {
+    async fn find_topic_by_partition_key(
+        &self,
+        query: &RequestGetTopicByPartitionKey,
+    ) -> AppResult<Vec<Topic>> {
         let session = self.db.lock().await;
         let result = Topic {
             topic_id: query.topic_id.to_owned(),
@@ -78,12 +81,13 @@ impl TopicRepository for TopicRepo {
             topic_id: request_topic_by_primary_key.topic_id.to_owned(),
             created_at: request_topic_by_primary_key.created_at,
             ..Default::default()
-        }.find_by_primary_key().execute(&session).await;
+        }
+            .find_by_primary_key()
+            .execute(&session)
+            .await;
 
         match topic {
-            Ok(topic) => {
-                Ok(topic)
-            }
+            Ok(topic) => Ok(topic),
             Err(err) => {
                 tracing::error!("{err:?}");
                 Err(anyhow!(AppError::InternalServerError))
@@ -91,9 +95,14 @@ impl TopicRepository for TopicRepo {
         }
     }
 
-    async fn find_topic_by_index_key(&self, query: &RequestGetTopicByIndexKey) -> AppResult<Vec<Topic>> {
+    async fn find_topic_by_index_key(
+        &self,
+        query: &RequestGetTopicByIndexKey,
+    ) -> AppResult<Vec<Topic>> {
         let session = self.db.lock().await;
-        let results = Topic::find_by_topic_name(Text::from(query.topic_name.clone())).execute(&session).await;
+        let results = Topic::find_by_topic_name((*query.topic_name).to_string())
+            .execute(&session)
+            .await;
 
         match results {
             Ok(value) => match value.try_collect().await {
@@ -110,20 +119,31 @@ impl TopicRepository for TopicRepo {
         }
     }
 
-
-    async fn update_topic<'u>(&self, topic: &'u RequestUpdateTopic) -> AppResult<&'u Topic> {
+    async fn update_topic(&self, topic: &RequestUpdateTopic) -> AppResult<Topic> {
         let session = self.db.lock().await;
         let mut batch = Topic::batch();
         if topic.push_to_admins.is_some() {
-            batch.append_statement(Topic::PUSH_TOPIC_ADMINS_QUERY, Topic { topic_owners: topic.clone().push_to_admins.unwrap(), ..Default::default() });
+            batch.append_statement(
+                Topic::PUSH_TOPIC_ADMINS_QUERY,
+                Topic {
+                    topic_owners: topic.push_to_admins.as_ref().unwrap().to_owned(),
+                    ..Default::default()
+                },
+            );
         }
 
         if topic.pop_to_admins.is_some() {
-            batch.append_statement(Topic::PULL_TOPIC_ADMINS_QUERY, Topic { topic_owners: topic.clone().pop_to_admins.unwrap(), ..Default::default() });
+            batch.append_statement(
+                Topic::PULL_TOPIC_ADMINS_QUERY,
+                Topic {
+                    topic_owners: topic.push_to_admins.as_ref().unwrap().to_owned(),
+                    ..Default::default()
+                },
+            );
         }
 
         match batch.execute(&session).await {
-            Ok(_) => Ok(topic),
+            Ok(_) => Ok(Topic::default()),
             Err(err) => {
                 tracing::error!("{err:?}");
                 Err(anyhow!(AppError::InternalServerError))

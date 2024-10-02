@@ -1,12 +1,10 @@
-use std::cell::{Cell, RefCell};
 use anyhow::bail;
 use charybdis::types::{Timestamp, Timeuuid};
 use scylla::{SerializeRow, SerializeValue};
 use serde::{Deserialize, Serialize};
+use std::cell::{Cell, RefCell};
 use thiserror::Error;
-use uptop_core::common::{
-    result::{AppError, AppResult},
-};
+use uptop_core::common::result::{AppError, AppResult};
 use validator::Validate;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Validate)]
@@ -27,7 +25,6 @@ impl RequestCreateTopic {
             }),
         };
 
-
         Ok(Self {
             topic_name: self.topic_name,
             topic_description: self.topic_description,
@@ -36,7 +33,6 @@ impl RequestCreateTopic {
         })
     }
 }
-
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Validate)]
 pub struct RequestGetTopicByPartitionKey {
@@ -80,7 +76,7 @@ pub struct RequestUpdateTopic {
     pub topic_id: Timeuuid,
     pub topic_name: Option<String>,
     pub topic_description: Option<String>,
-    pub push_to_owners: RefCell<Option<Vec<String>>>,
+    pub push_to_owners: Option<Vec<String>>,
     pub pop_to_owners: Option<Vec<String>>,
     pub push_to_admins: Option<Vec<String>>,
     pub pop_to_admins: Option<Vec<String>>,
@@ -102,7 +98,7 @@ impl RequestUpdateTopic {
             pop_to_owners: self.pop_to_owners,
             push_to_admins: self.push_to_admins,
             pop_to_admins: self.pop_to_admins,
+            topic_id: self.topic_id,
         })
     }
 }
-

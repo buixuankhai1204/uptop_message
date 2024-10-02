@@ -1,2 +1,2 @@
 pub mod actions;
-pub mod topic_handler;
+pub mod message_handler;
