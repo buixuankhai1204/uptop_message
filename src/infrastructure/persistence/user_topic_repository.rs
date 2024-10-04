@@ -60,7 +60,6 @@ impl UserTopicRepository for UserTopicRepo {
         }
     }
 
-
     async fn update_user_topics(&self, user_topic: &RequestUpdateUserTopic) -> AppResult<UserTopic> {
         let session = self.db.lock().await;
         let result = UserTopic {

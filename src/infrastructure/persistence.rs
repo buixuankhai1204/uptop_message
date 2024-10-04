@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use uptop_core::common::{db_types::CassandraCacheSession, result::AppResult};
 use crate::infrastructure::persistence::latest_message_repository::LatestMessageRepo;
 use crate::infrastructure::persistence::topic_message_repository::TopicMessageRepo;
@@ -19,9 +20,9 @@ pub struct MessageRepositories {
 impl MessageRepositories {
     pub fn new(session: CassandraCacheSession) -> Self {
         Self {
-            topic: topic_repository::TopicRepo::new(session.clone()),
-            topic_message: TopicMessageRepo::new(session.clone()),
-            latest_message: LatestMessageRepo::new(session),
+            topic: topic_repository::TopicRepo::new(Arc::clone(&session)),
+            topic_message: TopicMessageRepo::new(Arc::clone(&session)),
+            latest_message: LatestMessageRepo::new(Arc::clone(&session)),
         }
     }
 
